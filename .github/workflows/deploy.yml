@@ -1,0 +1,21 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: Ubuntu-latest
+    steps:
+      - name: Checkout your repository using git
+        uses: actions/checkout@v4
+        
+      - name: Install, build, and upload your site
+        uses: withastro/action@v3
+        # Node.jsのバージョンやパッケージマネージャー(npm)は自動で判別されます
