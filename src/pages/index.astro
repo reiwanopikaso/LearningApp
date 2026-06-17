@@ -76,7 +76,7 @@
         <header class="header">
           <button id="btn-quit" class="quit-btn">やめる</button>
           <div class="progress">進捗: 1 / 100</div>
-          <div style="width: 50px;"></div> 
+          <button id="btn-speak-again" class="speak-again-btn">🔊 再生</button>
         </header>
 
         <main class="main-area">
@@ -151,13 +151,10 @@
       /* --- 設定カード --- */
       .setup-card { background: #f8fafc; margin: 0 20px 20px; padding: 24px 20px; border-radius: 16px; border: 2px solid #edf2f7; display: flex; flex-direction: column; gap: 20px; }
       .section-title { font-size: 16px; color: #4a5568; text-align: center; margin-bottom: -4px; }
-      
-      /* 🌟 モード選択のスタイル */
       .mode-select { display: flex; flex-direction: column; gap: 12px; background: #ffffff; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; }
       .mode-label { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: bold; color: #2d3748; cursor: pointer; padding: 8px; border-radius: 8px; }
       .mode-label:hover { background: #edf2f7; }
       .mode-label input[type="radio"] { width: 20px; height: 20px; accent-color: #4299e1; }
-
       .range-inputs { display: flex; justify-content: center; align-items: center; gap: 12px; }
       .num-input { width: 80px; font-size: 20px; font-weight: bold; text-align: center; padding: 8px; border: 2px solid #cbd5e0; border-radius: 8px; color: #2d3748; outline: none; }
       .num-input:focus { border-color: #4299e1; }
@@ -177,6 +174,11 @@
       .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 2px solid #edf2f7; }
       .quit-btn { color: #a0aec0; background: none; border: none; font-weight: bold; cursor: pointer; font-size: 16px; }
       .progress { font-weight: bold; color: #4a5568; }
+      
+      /* 🌟 スピーカーボタンのスタイル */
+      .speak-again-btn { background: #edf2f7; color: #4a5568; border: none; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; }
+      .speak-again-btn:active { background: #e2e8f0; }
+
       .main-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
       .question-text { font-size: 28px; font-weight: bold; margin-bottom: 40px; color: #2d3748; line-height: 1.5; word-wrap: break-word; }
 
@@ -198,7 +200,7 @@
       .enter { background-color: #4299e1; color: white; height: 56px; font-size: 20px; box-shadow: 0 4px 0 #2b6cb0; flex: 1; max-width: 100%; }
       .enter:active { box-shadow: 0 0 0 #2b6cb0; }
 
-      /* --- 🌟 フラッシュカードUI --- */
+      /* --- フラッシュカードUI --- */
       .flashcard-ui { display: flex; flex-direction: column; align-items: center; width: 100%; }
       .reveal-btn { background-color: #3182ce; color: white; border: none; padding: 16px 40px; border-radius: 99px; font-size: 20px; font-weight: bold; box-shadow: 0 4px 0 #2b6cb0; cursor: pointer; transition: all 0.2s; }
       .reveal-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #2b6cb0; }
@@ -228,6 +230,7 @@
       const rangeStartInput = document.getElementById('range-start') as HTMLInputElement;
       const rangeEndInput = document.getElementById('range-end') as HTMLInputElement;
       const randomCheck = document.getElementById('random-check') as HTMLInputElement;
+      const speakAgainBtn = document.getElementById('btn-speak-again') as HTMLButtonElement; // スピーカーボタン
 
       type Word = { id: number; en: string; ja: string; };
       
@@ -236,8 +239,6 @@
       let mistakes: number[] = [];
       let isShowingFeedback = false;
       let sessionStudiedIds = new Set<number>();
-      
-      // 🌟 現在のモード ('en-typing' | 'ja-flashcard')
       let currentMode = 'en-typing';
 
       // UI Elements
@@ -260,6 +261,25 @@
       const answerTextEl = document.getElementById('answer-text') as HTMLElement;
       const wrongBtn = document.getElementById('btn-wrong') as HTMLButtonElement;
       const correctBtn = document.getElementById('btn-correct') as HTMLButtonElement;
+
+      // 🌟 追加: 英語をネイティブ風に音声読み上げする共通関数
+      function speakEnglish(text: string) {
+        // 再生中の音声を強制停止
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US'; // アメリカ英語に設定 ('en-GB'にするとイギリス英語になります)
+        utterance.rate = 0.9;     // 少しだけ聞き取りやすくするために速度を0.9倍に調整
+        
+        window.speechSynthesis.speak(utterance);
+      }
+
+      // 🌟 追加: スピーカーボタンを押した時、現在の英単語を再再生
+      speakAgainBtn.addEventListener('click', () => {
+        if (currentIndex < studyList.length) {
+          speakEnglish(studyList[currentIndex].en);
+        }
+      });
 
       async function loadStats() {
         const userRef = doc(db, "users", "my_user");
@@ -392,6 +412,7 @@
 
       quitBtn.addEventListener('click', async () => {
         if (confirm('学習を中断して設定画面に戻りますか？')) {
+          window.speechSynthesis.cancel(); // 音声をストップ
           await syncSessionProgress();
           await loadStats();
           studyScreen.style.display = 'none';
@@ -412,7 +433,6 @@
         const currentWord = studyList[currentIndex];
         if (progressEl) progressEl.innerHTML = `進捗: ${currentIndex + 1} / ${studyList.length}`;
         
-        // モードに応じた画面の切り替え
         if (currentMode === 'en-typing') {
           questionTextEl.innerText = currentWord.ja;
           typingUi.style.display = 'flex';
@@ -423,8 +443,11 @@
           inputEl.style.color = '#2b6cb0'; 
           feedbackMsgEl.classList.remove('show');
           isShowingFeedback = false;
+
+          // 🌟 変更: タイピングモードでは、次の単語（日本語）が出たら即座に英語を発音（リスニング対策）
+          speakEnglish(currentWord.en);
+
         } else {
-          // 日本語訳テスト（フラッシュカード）モード
           questionTextEl.innerText = currentWord.en;
           typingUi.style.display = 'none';
           keyboardEl.style.display = 'none';
@@ -432,10 +455,12 @@
           
           revealBtn.style.display = 'block';
           answerArea.style.display = 'none';
+
+          // 🌟 変更: 日本語訳テストでも、英語の問題文字が表示された瞬間にネイティブ発音
+          speakEnglish(currentWord.en);
         }
       }
 
-      // --- タイピングモードの処理 ---
       function typeChar(char: string) {
         if (isShowingFeedback || currentMode !== 'en-typing') return;
         inputEl.value += char.toLowerCase();
@@ -470,6 +495,9 @@
           feedbackMsgEl.innerText = `正解: ${currentWord.en}`;
           feedbackMsgEl.classList.add('show');
           isShowingFeedback = true;
+
+          // 🌟 変更: 間違えた時、正しい答えの発音をもう一度流してあげる
+          speakEnglish(currentWord.en);
           
           if (!mistakes.includes(currentWord.id)) {
             mistakes.push(currentWord.id);
@@ -523,7 +551,7 @@
         }, 100);
       }
 
-      // --- 🌟 フラッシュカードモードの処理 ---
+      // --- フラッシュカードモードの処理 ---
       revealBtn.addEventListener('click', () => {
         const currentWord = studyList[currentIndex];
         answerTextEl.innerText = currentWord.ja;
