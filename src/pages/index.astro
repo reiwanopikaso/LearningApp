@@ -1,0 +1,560 @@
+---
+// src/pages/index.astro
+---
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>単語学習アプリ</title>
+  </head>
+  <body>
+    <div class="app-container">
+      
+      <div id="setup-screen" class="screen-area">
+        <h1 class="app-title">Target 1900</h1>
+        
+        <div class="dashboard-card">
+          <div class="stats-grid">
+            <div class="stat-box">
+              <span class="stat-label">今日の学習数</span>
+              <span class="stat-value"><span id="stat-today">0</span><span class="stat-unit">単語</span></span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">苦手な単語</span>
+              <span class="stat-value"><span id="stat-mistakes">0</span><span class="stat-unit">コ</span></span>
+            </div>
+          </div>
+          
+          <div class="progress-section">
+            <div class="progress-header">
+              <span class="progress-label">1周目達成まであと <strong><span id="stat-remaining">1900</span></strong> 単語</span>
+              <span class="progress-text"><span id="stat-total-progress">0</span> / 1900</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <h2 class="section-title">学習モード</h2>
+          <div class="mode-select">
+            <label class="mode-label">
+              <input type="radio" name="study-mode" value="en-typing" checked />
+              <span>🔤 英単語タイピング</span>
+            </label>
+            <label class="mode-label">
+              <input type="radio" name="study-mode" value="ja-flashcard" />
+              <span>🇯🇵 日本語訳テスト</span>
+            </label>
+          </div>
+
+          <hr class="divider" />
+
+          <h2 class="section-title">出題範囲</h2>
+          <div class="range-inputs">
+            <input type="number" id="range-start" class="num-input" value="1" min="1" max="1900" />
+            <span class="range-tilde">〜</span>
+            <input type="number" id="range-end" class="num-input" value="100" min="1" max="1900" />
+          </div>
+
+          <label class="toggle-label">
+            <input type="checkbox" id="random-check" class="toggle-checkbox" />
+            <span class="toggle-text">ランダムに出題する</span>
+          </label>
+
+          <button id="btn-start" class="start-btn">通常学習スタート</button>
+
+          <hr class="divider" />
+          <button id="btn-review-setup" class="review-btn-setup">🔥 苦手な単語を復習する</button>
+          
+          <button id="btn-reset" class="reset-btn">🗑 苦手リストをリセット</button>
+        </div>
+      </div>
+
+      <div id="study-screen" class="screen-area" style="display: none;">
+        <header class="header">
+          <button id="btn-quit" class="quit-btn">やめる</button>
+          <div class="progress">進捗: 1 / 100</div>
+          <div style="width: 50px;"></div> 
+        </header>
+
+        <main class="main-area">
+          <div id="question-text" class="question-text"></div>
+          
+          <div id="typing-ui" class="typing-ui">
+            <input type="text" id="user-input" readonly class="user-input" placeholder="タップして入力" />
+            <div id="feedback-msg" class="feedback-msg"></div>
+          </div>
+
+          <div id="flashcard-ui" class="flashcard-ui" style="display: none;">
+            <button id="btn-reveal" class="reveal-btn">正解を見る</button>
+            
+            <div id="answer-area" class="answer-area" style="display: none;">
+              <div id="answer-text" class="answer-text"></div>
+              <div class="judgment-btns">
+                <button id="btn-wrong" class="judge-btn wrong">❌ わからなかった</button>
+                <button id="btn-correct" class="judge-btn correct">⭕️ わかった</button>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <div id="keyboard" class="keyboard">
+          <div class="key-row">
+            {["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"].map(char => (
+              <button class="key-btn">{char}</button>
+            ))}
+          </div>
+          <div class="key-row">
+            {["A", "S", "D", "F", "G", "H", "J", "K", "L"].map(char => (
+              <button class="key-btn">{char}</button>
+            ))}
+          </div>
+          <div class="key-row">
+            {["Z", "X", "C", "V", "B", "N", "M"].map(char => (
+              <button class="key-btn">{char}</button>
+            ))}
+            <button id="btn-backspace" class="key-btn action-key backspace">⌫</button>
+          </div>
+          <div class="key-row enter-row">
+            <button id="btn-enter" class="key-btn action-key enter">ENTER</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <style>
+      /* --- ベース設定 --- */
+      * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; }
+      body { background-color: #f4f7f6; color: #333; touch-action: manipulation; }
+      .app-container { display: flex; flex-direction: column; height: 100vh; max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.05); overflow-y: auto; }
+      .screen-area { display: flex; flex-direction: column; height: 100%; width: 100%; }
+
+      /* --- ダッシュボード --- */
+      .app-title { text-align: center; font-size: 28px; font-weight: bold; color: #2b6cb0; margin: 20px 0 16px; letter-spacing: 1px; }
+      .dashboard-card { background: #ffffff; margin: 0 20px 16px; padding: 20px; border-radius: 16px; border: 2px solid #edf2f7; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+      .stats-grid { display: flex; gap: 12px; margin-bottom: 20px; }
+      .stat-box { flex: 1; background: #f8fafc; padding: 12px; border-radius: 12px; text-align: center; }
+      .stat-label { display: block; font-size: 12px; color: #718096; font-weight: bold; margin-bottom: 4px; }
+      .stat-value { font-size: 24px; font-weight: bold; color: #2d3748; }
+      .stat-unit { font-size: 12px; color: #a0aec0; margin-left: 4px; }
+      .progress-section { margin-top: 12px; }
+      .progress-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; font-size: 14px; }
+      .progress-label { color: #4a5568; }
+      .progress-label strong { color: #3182ce; font-size: 18px; }
+      .progress-text { color: #a0aec0; font-weight: bold; }
+      .progress-bar-bg { width: 100%; height: 12px; background-color: #edf2f7; border-radius: 6px; overflow: hidden; }
+      .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #63b3ed 0%, #3182ce 100%); transition: width 0.5s ease-in-out; }
+
+      /* --- 設定カード --- */
+      .setup-card { background: #f8fafc; margin: 0 20px 20px; padding: 24px 20px; border-radius: 16px; border: 2px solid #edf2f7; display: flex; flex-direction: column; gap: 20px; }
+      .section-title { font-size: 16px; color: #4a5568; text-align: center; margin-bottom: -4px; }
+      
+      /* 🌟 モード選択のスタイル */
+      .mode-select { display: flex; flex-direction: column; gap: 12px; background: #ffffff; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; }
+      .mode-label { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: bold; color: #2d3748; cursor: pointer; padding: 8px; border-radius: 8px; }
+      .mode-label:hover { background: #edf2f7; }
+      .mode-label input[type="radio"] { width: 20px; height: 20px; accent-color: #4299e1; }
+
+      .range-inputs { display: flex; justify-content: center; align-items: center; gap: 12px; }
+      .num-input { width: 80px; font-size: 20px; font-weight: bold; text-align: center; padding: 8px; border: 2px solid #cbd5e0; border-radius: 8px; color: #2d3748; outline: none; }
+      .num-input:focus { border-color: #4299e1; }
+      .range-tilde { font-size: 20px; color: #a0aec0; font-weight: bold; }
+      .toggle-label { display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; user-select: none; }
+      .toggle-checkbox { width: 20px; height: 20px; accent-color: #4299e1; }
+      .toggle-text { font-size: 16px; font-weight: bold; color: #4a5568; }
+      .start-btn { background-color: #4299e1; color: white; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 0 #2b6cb0; cursor: pointer; }
+      .start-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #2b6cb0; }
+      .divider { border: none; border-top: 2px dashed #e2e8f0; margin: 4px 0; }
+      .review-btn-setup { background-color: #ed8936; color: white; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 0 #c05621; cursor: pointer; }
+      .review-btn-setup:active { transform: translateY(4px); box-shadow: 0 0 0 #c05621; }
+      .reset-btn { background-color: #ffffff; color: #e53e3e; border: 2px solid #fc8181; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 8px; transition: all 0.2s; }
+      .reset-btn:active { background-color: #fff5f5; transform: scale(0.98); }
+
+      /* --- 学習画面共通 --- */
+      .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 2px solid #edf2f7; }
+      .quit-btn { color: #a0aec0; background: none; border: none; font-weight: bold; cursor: pointer; font-size: 16px; }
+      .progress { font-weight: bold; color: #4a5568; }
+      .main-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+      .question-text { font-size: 28px; font-weight: bold; margin-bottom: 40px; color: #2d3748; line-height: 1.5; word-wrap: break-word; }
+
+      /* --- タイピングUI --- */
+      .typing-ui { display: flex; flex-direction: column; align-items: center; width: 100%; }
+      .user-input { width: 100%; max-width: 320px; border: none; border-bottom: 4px solid #4299e1; background: transparent; font-size: 36px; font-weight: bold; text-align: center; color: #2b6cb0; padding-bottom: 8px; outline: none; letter-spacing: 2px; }
+      .user-input::placeholder { color: #cbd5e0; font-size: 20px; letter-spacing: normal; }
+      .feedback-msg { margin-top: 16px; font-size: 20px; font-weight: bold; color: #e53e3e; height: 30px; opacity: 0; transition: opacity 0.2s ease-in-out; }
+      .feedback-msg.show { opacity: 1; }
+      .keyboard { background-color: #e2e8f0; padding: 12px 6px 24px 6px; }
+      .key-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; }
+      .enter-row { padding: 0 4px; margin-top: 12px; }
+      .key-btn { background-color: #ffffff; border: none; border-radius: 8px; height: 50px; min-width: 32px; flex: 1; max-width: 40px; font-size: 20px; font-weight: bold; color: #4a5568; box-shadow: 0 4px 0 #cbd5e0; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: center; }
+      .key-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #cbd5e0; }
+      .active-simulated { transform: translateY(4px); box-shadow: 0 0 0 #cbd5e0 !important; background-color: #edf2f7; }
+      .action-key { max-width: none; flex: 1.5; }
+      .backspace { background-color: #a0aec0; color: white; box-shadow: 0 4px 0 #718096; }
+      .backspace:active { box-shadow: 0 0 0 #718096; }
+      .enter { background-color: #4299e1; color: white; height: 56px; font-size: 20px; box-shadow: 0 4px 0 #2b6cb0; flex: 1; max-width: 100%; }
+      .enter:active { box-shadow: 0 0 0 #2b6cb0; }
+
+      /* --- 🌟 フラッシュカードUI --- */
+      .flashcard-ui { display: flex; flex-direction: column; align-items: center; width: 100%; }
+      .reveal-btn { background-color: #3182ce; color: white; border: none; padding: 16px 40px; border-radius: 99px; font-size: 20px; font-weight: bold; box-shadow: 0 4px 0 #2b6cb0; cursor: pointer; transition: all 0.2s; }
+      .reveal-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #2b6cb0; }
+      .answer-area { display: flex; flex-direction: column; align-items: center; width: 100%; animation: fadeIn 0.3s ease-in-out; }
+      .answer-text { font-size: 32px; font-weight: bold; color: #e53e3e; margin-bottom: 40px; }
+      .judgment-btns { display: flex; gap: 16px; width: 100%; max-width: 400px; }
+      .judge-btn { flex: 1; padding: 20px; font-size: 18px; font-weight: bold; border-radius: 16px; border: none; cursor: pointer; color: white; }
+      .judge-btn.wrong { background-color: #f56565; box-shadow: 0 6px 0 #c53030; }
+      .judge-btn.wrong:active { transform: translateY(6px); box-shadow: 0 0 0 #c53030; }
+      .judge-btn.correct { background-color: #48bb78; box-shadow: 0 6px 0 #2f855a; }
+      .judge-btn.correct:active { transform: translateY(6px); box-shadow: 0 0 0 #2f855a; }
+      
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+
+    <script>
+      import allWords from '../data/words.json';
+      import { doc, setDoc, getDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
+      import { db } from "../lib/firebase";
+
+      const setupScreen = document.getElementById('setup-screen') as HTMLElement;
+      const studyScreen = document.getElementById('study-screen') as HTMLElement;
+      const startBtn = document.getElementById('btn-start') as HTMLButtonElement;
+      const reviewSetupBtn = document.getElementById('btn-review-setup') as HTMLButtonElement;
+      const resetBtn = document.getElementById('btn-reset') as HTMLButtonElement;
+      const quitBtn = document.getElementById('btn-quit') as HTMLButtonElement;
+      const rangeStartInput = document.getElementById('range-start') as HTMLInputElement;
+      const rangeEndInput = document.getElementById('range-end') as HTMLInputElement;
+      const randomCheck = document.getElementById('random-check') as HTMLInputElement;
+
+      type Word = { id: number; en: string; ja: string; };
+      
+      let studyList: Word[] = [];
+      let currentIndex = 0;
+      let mistakes: number[] = [];
+      let isShowingFeedback = false;
+      let sessionStudiedIds = new Set<number>();
+      
+      // 🌟 現在のモード ('en-typing' | 'ja-flashcard')
+      let currentMode = 'en-typing';
+
+      // UI Elements
+      const questionTextEl = document.getElementById('question-text') as HTMLElement;
+      const progressEl = document.querySelector('.progress') as HTMLElement;
+      
+      // Typing UI
+      const typingUi = document.getElementById('typing-ui') as HTMLElement;
+      const inputEl = document.getElementById('user-input') as HTMLInputElement;
+      const feedbackMsgEl = document.getElementById('feedback-msg') as HTMLElement;
+      const keyboardEl = document.getElementById('keyboard') as HTMLElement;
+      const keyBtns = document.querySelectorAll('.key-btn:not(.action-key)');
+      const backspaceBtn = document.getElementById('btn-backspace');
+      const enterBtn = document.getElementById('btn-enter');
+
+      // Flashcard UI
+      const flashcardUi = document.getElementById('flashcard-ui') as HTMLElement;
+      const revealBtn = document.getElementById('btn-reveal') as HTMLButtonElement;
+      const answerArea = document.getElementById('answer-area') as HTMLElement;
+      const answerTextEl = document.getElementById('answer-text') as HTMLElement;
+      const wrongBtn = document.getElementById('btn-wrong') as HTMLButtonElement;
+      const correctBtn = document.getElementById('btn-correct') as HTMLButtonElement;
+
+      async function loadStats() {
+        const userRef = doc(db, "users", "my_user");
+        const docSnap = await getDoc(userRef);
+        const d = new Date();
+        const todayStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        let studiedCount = 0;
+        let todayCount = 0;
+        let mistakeCount = 0;
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          studiedCount = (data.studiedIds || []).length;
+          mistakeCount = (data.mistakeIds || []).length;
+          if (data.dailyProgress && data.dailyProgress[todayStr]) {
+            todayCount = data.dailyProgress[todayStr];
+          }
+        }
+
+        document.getElementById('stat-today')!.innerText = String(todayCount);
+        document.getElementById('stat-mistakes')!.innerText = String(mistakeCount);
+        document.getElementById('stat-total-progress')!.innerText = String(studiedCount);
+        document.getElementById('stat-remaining')!.innerText = String(1900 - studiedCount);
+        const percent = Math.min((studiedCount / 1900) * 100, 100);
+        document.getElementById('progress-bar-fill')!.style.width = `${percent}%`;
+      }
+
+      loadStats();
+
+      async function syncSessionProgress() {
+        if (sessionStudiedIds.size === 0) return;
+        const d = new Date();
+        const todayStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const userRef = doc(db, "users", "my_user");
+
+        try {
+          const snap = await getDoc(userRef);
+          if (!snap.exists()) {
+            await setDoc(userRef, { mistakeIds: [], studiedIds: [], dailyProgress: {} });
+          }
+          await updateDoc(userRef, {
+            studiedIds: arrayUnion(...Array.from(sessionStudiedIds)),
+            [`dailyProgress.${todayStr}`]: increment(sessionStudiedIds.size)
+          });
+          sessionStudiedIds.clear();
+        } catch (error) {
+          console.error("進捗保存エラー:", error);
+        }
+      }
+
+      resetBtn.addEventListener('click', async () => {
+        if (confirm('本当に苦手リストを空にしますか？\n（進捗や学習数はリセットされません）')) {
+          try {
+            const userRef = doc(db, "users", "my_user");
+            await setDoc(userRef, { mistakeIds: [] }, { merge: true });
+            alert('リセットしました！');
+            loadStats();
+          } catch(e) {
+            alert('リセットに失敗しました');
+          }
+        }
+      });
+
+      function shuffleArray(array: Word[]) {
+        const newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+        return newArray;
+      }
+
+      function getSelectedMode() {
+        const radios = document.getElementsByName('study-mode') as NodeListOf<HTMLInputElement>;
+        for (const radio of radios) {
+          if (radio.checked) return radio.value;
+        }
+        return 'en-typing';
+      }
+
+      function startSession(words: Word[]) {
+        currentMode = getSelectedMode();
+        studyList = words;
+        currentIndex = 0;
+        mistakes = [];
+        isShowingFeedback = false;
+        sessionStudiedIds.clear();
+
+        setupScreen.style.display = 'none';
+        studyScreen.style.display = 'flex';
+        renderCurrentWord();
+      }
+
+      startBtn.addEventListener('click', () => {
+        const startId = parseInt(rangeStartInput.value, 10);
+        const endId = parseInt(rangeEndInput.value, 10);
+        if (isNaN(startId) || isNaN(endId) || startId > endId || startId < 1 || endId > 1900) {
+          alert('正しい範囲を入力してください (1 〜 1900)');
+          return;
+        }
+        let filteredWords = allWords.filter(word => word.id >= startId && word.id <= endId);
+        if (randomCheck.checked) {
+          filteredWords = shuffleArray(filteredWords);
+        }
+        startSession(filteredWords);
+      });
+
+      reviewSetupBtn.addEventListener('click', async () => {
+        try {
+          const userRef = doc(db, "users", "my_user");
+          const docSnap = await getDoc(userRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const mistakeIds = data.mistakeIds || [];
+            if (mistakeIds.length === 0) {
+              alert("復習する単語がありません！完璧です！");
+              return;
+            }
+            let reviewWords = allWords.filter(word => mistakeIds.includes(word.id));
+            reviewWords = shuffleArray(reviewWords);
+            startSession(reviewWords);
+          } else {
+            alert("まだ学習データがありません。");
+          }
+        } catch (error) {
+          alert("復習データの取得に失敗しました。");
+        }
+      });
+
+      quitBtn.addEventListener('click', async () => {
+        if (confirm('学習を中断して設定画面に戻りますか？')) {
+          await syncSessionProgress();
+          await loadStats();
+          studyScreen.style.display = 'none';
+          setupScreen.style.display = 'flex';
+        }
+      });
+
+      async function renderCurrentWord() {
+        if (currentIndex >= studyList.length) {
+          await syncSessionProgress();
+          await loadStats();
+          alert(`お疲れ様でした！\n新しく間違えた数: ${mistakes.length}コ`);
+          studyScreen.style.display = 'none';
+          setupScreen.style.display = 'flex';
+          return;
+        }
+        
+        const currentWord = studyList[currentIndex];
+        if (progressEl) progressEl.innerHTML = `進捗: ${currentIndex + 1} / ${studyList.length}`;
+        
+        // モードに応じた画面の切り替え
+        if (currentMode === 'en-typing') {
+          questionTextEl.innerText = currentWord.ja;
+          typingUi.style.display = 'flex';
+          keyboardEl.style.display = 'block';
+          flashcardUi.style.display = 'none';
+          
+          inputEl.value = '';
+          inputEl.style.color = '#2b6cb0'; 
+          feedbackMsgEl.classList.remove('show');
+          isShowingFeedback = false;
+        } else {
+          // 日本語訳テスト（フラッシュカード）モード
+          questionTextEl.innerText = currentWord.en;
+          typingUi.style.display = 'none';
+          keyboardEl.style.display = 'none';
+          flashcardUi.style.display = 'flex';
+          
+          revealBtn.style.display = 'block';
+          answerArea.style.display = 'none';
+        }
+      }
+
+      // --- タイピングモードの処理 ---
+      function typeChar(char: string) {
+        if (isShowingFeedback || currentMode !== 'en-typing') return;
+        inputEl.value += char.toLowerCase();
+      }
+
+      function deleteChar() {
+        if (isShowingFeedback || currentMode !== 'en-typing') return;
+        inputEl.value = inputEl.value.slice(0, -1);
+      }
+
+      async function checkAnswer() {
+        if (studyScreen.style.display === 'none' || currentMode !== 'en-typing') return;
+
+        if (isShowingFeedback) {
+          currentIndex++;
+          renderCurrentWord();
+          return;
+        }
+
+        const answer = inputEl.value.trim().toLowerCase();
+        if (!answer) return;
+
+        const currentWord = studyList[currentIndex];
+
+        if (answer === currentWord.en.toLowerCase()) {
+          sessionStudiedIds.add(currentWord.id);
+          currentIndex++;
+          renderCurrentWord();
+        } else {
+          sessionStudiedIds.add(currentWord.id);
+          inputEl.style.color = '#e53e3e';
+          feedbackMsgEl.innerText = `正解: ${currentWord.en}`;
+          feedbackMsgEl.classList.add('show');
+          isShowingFeedback = true;
+          
+          if (!mistakes.includes(currentWord.id)) {
+            mistakes.push(currentWord.id);
+            try {
+              const userRef = doc(db, "users", "my_user");
+              await setDoc(userRef, { mistakeIds: arrayUnion(currentWord.id) }, { merge: true });
+            } catch (error) {
+              console.error("保存エラー:", error);
+            }
+          }
+        }
+      }
+
+      keyBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const target = e.target as HTMLButtonElement;
+          typeChar(target.innerText);
+        });
+      });
+      backspaceBtn?.addEventListener('click', deleteChar);
+      enterBtn?.addEventListener('click', checkAnswer);
+
+      document.addEventListener('keydown', (e) => {
+        if (studyScreen.style.display === 'none' || currentMode !== 'en-typing') return;
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+        const key = e.key;
+        if (key === 'Enter') {
+          e.preventDefault();
+          checkAnswer();
+          visualizeKeyPress(enterBtn);
+        } else if (key === 'Backspace') {
+          e.preventDefault();
+          deleteChar();
+          visualizeKeyPress(backspaceBtn);
+        } else if (/^[a-zA-Z]$/.test(key)) {
+          e.preventDefault();
+          typeChar(key);
+          const vKey = Array.from(keyBtns).find(
+            btn => (btn as HTMLButtonElement).innerText === key.toUpperCase()
+          );
+          visualizeKeyPress(vKey);
+        }
+      });
+
+      function visualizeKeyPress(element: Element | null | undefined) {
+        if (!element) return;
+        element.classList.add('active-simulated');
+        setTimeout(() => {
+          element.classList.remove('active-simulated');
+        }, 100);
+      }
+
+      // --- 🌟 フラッシュカードモードの処理 ---
+      revealBtn.addEventListener('click', () => {
+        const currentWord = studyList[currentIndex];
+        answerTextEl.innerText = currentWord.ja;
+        revealBtn.style.display = 'none';
+        answerArea.style.display = 'flex';
+      });
+
+      correctBtn.addEventListener('click', () => {
+        const currentWord = studyList[currentIndex];
+        sessionStudiedIds.add(currentWord.id);
+        currentIndex++;
+        renderCurrentWord();
+      });
+
+      wrongBtn.addEventListener('click', async () => {
+        const currentWord = studyList[currentIndex];
+        sessionStudiedIds.add(currentWord.id);
+        
+        if (!mistakes.includes(currentWord.id)) {
+          mistakes.push(currentWord.id);
+          try {
+            const userRef = doc(db, "users", "my_user");
+            await setDoc(userRef, { mistakeIds: arrayUnion(currentWord.id) }, { merge: true });
+          } catch (error) {
+            console.error("保存エラー:", error);
+          }
+        }
+        
+        currentIndex++;
+        renderCurrentWord();
+      });
+    </script>
+  </body>
+</html>
