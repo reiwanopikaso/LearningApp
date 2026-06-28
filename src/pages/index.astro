@@ -20,7 +20,7 @@
               <span class="stat-value"><span id="stat-today">0</span><span class="stat-unit">単語</span></span>
             </div>
             <div class="stat-box">
-              <span class="stat-label">苦手な単語</span>
+              <span class="stat-label">選択リストの苦手</span>
               <span class="stat-value"><span id="stat-mistakes">0</span><span class="stat-unit">コ</span></span>
             </div>
           </div>
@@ -33,6 +33,21 @@
             <div class="progress-bar-bg">
               <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
             </div>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <h2 class="section-title">🎯 苦手リストの選択・管理</h2>
+          <div class="list-management-box">
+            <select id="select-mistake-list" class="list-select">
+              </select>
+            <div class="create-list-row">
+              <input type="text" id="input-new-list-name" class="text-input" placeholder="新しいリスト名を入力" />
+              <button id="btn-create-list" class="action-sub-btn">新規作成</button>
+            </div>
+            <button id="btn-open-modal" class="open-modal-btn">
+              👀 選択中のリストを確認・編集する
+            </button>
           </div>
         </div>
 
@@ -51,24 +66,45 @@
 
           <hr class="divider" />
 
-          <h2 class="section-title">出題範囲</h2>
+          <h2 class="section-title">出題範囲と設定</h2>
           <div class="range-inputs">
             <input type="number" id="range-start" class="num-input" value="1" min="1" max="1900" />
             <span class="range-tilde">〜</span>
             <input type="number" id="range-end" class="num-input" value="100" min="1" max="1900" />
           </div>
 
-          <label class="toggle-label">
-            <input type="checkbox" id="random-check" class="toggle-checkbox" />
-            <span class="toggle-text">ランダムに出題する</span>
-          </label>
+          <div class="settings-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="random-check" class="toggle-checkbox" />
+              <span class="toggle-text">ランダムに出題する</span>
+            </label>
+            
+            <label class="toggle-label">
+              <input type="checkbox" id="sound-check" class="toggle-checkbox" checked />
+              <span class="toggle-text">🔊 英語の音声を自動再生する</span>
+            </label>
+          </div>
 
           <button id="btn-start" class="start-btn">通常学習スタート</button>
 
           <hr class="divider" />
-          <button id="btn-review-setup" class="review-btn-setup">🔥 苦手な単語を復習する</button>
+          <button id="btn-review-setup" class="review-btn-setup">🔥 選択中のリストを復習する</button>
           
-          <button id="btn-reset" class="reset-btn">🗑 苦手リストをリセット</button>
+          <button id="btn-reset" class="reset-btn">🗑 選択中のリストを空にする</button>
+        </div>
+      </div>
+
+      <div id="list-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">📋 <span id="viewing-list-name">デフォルト</span></h2>
+              <p class="modal-subtitle">登録単語: <span id="viewing-list-count">0</span>コ</p>
+            </div>
+            <button id="btn-close-modal" class="modal-close-btn">✕</button>
+          </div>
+          <div id="list-words-container" class="modal-body">
+            </div>
         </div>
       </div>
 
@@ -129,7 +165,7 @@
       /* --- ベース設定 --- */
       * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; }
       body { background-color: #f4f7f6; color: #333; touch-action: manipulation; }
-      .app-container { display: flex; flex-direction: column; height: 100vh; max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.05); overflow-y: auto; }
+      .app-container { display: flex; flex-direction: column; height: 100vh; max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.05); overflow-y: auto; position: relative; }
       .screen-area { display: flex; flex-direction: column; height: 100%; width: 100%; }
 
       /* --- ダッシュボード --- */
@@ -148,9 +184,41 @@
       .progress-bar-bg { width: 100%; height: 12px; background-color: #edf2f7; border-radius: 6px; overflow: hidden; }
       .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #63b3ed 0%, #3182ce 100%); transition: width 0.5s ease-in-out; }
 
+      /* 苦手リスト管理UI */
+      .list-management-box { display: flex; flex-direction: column; gap: 10px; background: #ffffff; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; }
+      .list-select { width: 100%; font-size: 16px; padding: 10px; border-radius: 8px; border: 2px solid #cbd5e0; color: #2d3748; font-weight: bold; outline: none; background-color: #fff; }
+      .list-select:focus { border-color: #4299e1; }
+      .create-list-row { display: flex; gap: 8px; }
+      .text-input { flex: 1; padding: 10px; font-size: 14px; border: 2px solid #cbd5e0; border-radius: 8px; outline: none; }
+      .text-input:focus { border-color: #4299e1; }
+      .action-sub-btn { background: #4a5568; color: white; border: none; padding: 0 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
+      .action-sub-btn:active { background: #2d3748; }
+      
+      .open-modal-btn { margin-top: 8px; background: #ebf8ff; color: #3182ce; border: 2px solid #bee3f8; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; transition: all 0.2s; }
+      .open-modal-btn:active { background: #bee3f8; transform: scale(0.98); }
+
+      /* ポップアップ（モーダル）のスタイル */
+      .modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); z-index: 1000; display: flex; align-items: flex-end; backdrop-filter: blur(2px); animation: fadeIn 0.2s ease-out; }
+      .modal-content { background: #f8fafc; width: 100%; height: 85%; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; box-shadow: 0 -10px 25px rgba(0,0,0,0.1); animation: slideUpModal 0.3s cubic-bezier(0.16, 1, 0.3, 1); overflow: hidden; }
+      .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px 12px; background: #ffffff; border-bottom: 1px solid #edf2f7; }
+      .modal-title { font-size: 20px; font-weight: bold; color: #2d3748; margin-bottom: 4px; }
+      .modal-subtitle { font-size: 13px; color: #718096; font-weight: bold; }
+      .modal-close-btn { background: #edf2f7; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; color: #4a5568; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+      .modal-close-btn:active { background: #e2e8f0; }
+      .modal-body { flex: 1; overflow-y: auto; padding: 16px; background: #f4f7f6; }
+
+      /* 🌟 改修: カード型のリストデザイン */
+      .word-list-card { background: #ffffff; border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
+      .word-info { display: flex; flex-direction: column; gap: 4px; }
+      .word-en { font-size: 18px; font-weight: 800; color: #2b6cb0; letter-spacing: 0.5px; }
+      .word-ja { font-size: 14px; font-weight: bold; color: #4a5568; }
+      .delete-btn { background: #fff5f5; color: #e53e3e; border: 1px solid #feb2b2; border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px; }
+      .delete-btn:active { background: #fed7d7; transform: scale(0.95); }
+      .empty-list-msg { text-align: center; padding: 40px 20px; color: #a0aec0; font-weight: bold; font-size: 15px; }
+
       /* --- 設定カード --- */
       .setup-card { background: #f8fafc; margin: 0 20px 20px; padding: 24px 20px; border-radius: 16px; border: 2px solid #edf2f7; display: flex; flex-direction: column; gap: 20px; }
-      .section-title { font-size: 16px; color: #4a5568; text-align: center; margin-bottom: -4px; }
+      .section-title { font-size: 16px; color: #4a5568; text-align: center; margin-bottom: -4px; font-weight: bold; }
       .mode-select { display: flex; flex-direction: column; gap: 12px; background: #ffffff; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; }
       .mode-label { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: bold; color: #2d3748; cursor: pointer; padding: 8px; border-radius: 8px; }
       .mode-label:hover { background: #edf2f7; }
@@ -159,9 +227,12 @@
       .num-input { width: 80px; font-size: 20px; font-weight: bold; text-align: center; padding: 8px; border: 2px solid #cbd5e0; border-radius: 8px; color: #2d3748; outline: none; }
       .num-input:focus { border-color: #4299e1; }
       .range-tilde { font-size: 20px; color: #a0aec0; font-weight: bold; }
-      .toggle-label { display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; user-select: none; }
+      
+      .settings-group { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; padding: 0 10px; }
+      .toggle-label { display: flex; align-items: center; justify-content: flex-start; gap: 10px; cursor: pointer; user-select: none; }
       .toggle-checkbox { width: 20px; height: 20px; accent-color: #4299e1; }
-      .toggle-text { font-size: 16px; font-weight: bold; color: #4a5568; }
+      .toggle-text { font-size: 15px; font-weight: bold; color: #4a5568; }
+      
       .start-btn { background-color: #4299e1; color: white; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 0 #2b6cb0; cursor: pointer; }
       .start-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #2b6cb0; }
       .divider { border: none; border-top: 2px dashed #e2e8f0; margin: 4px 0; }
@@ -174,8 +245,6 @@
       .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 2px solid #edf2f7; }
       .quit-btn { color: #a0aec0; background: none; border: none; font-weight: bold; cursor: pointer; font-size: 16px; }
       .progress { font-weight: bold; color: #4a5568; }
-      
-      /* 🌟 スピーカーボタンのスタイル */
       .speak-again-btn { background: #edf2f7; color: #4a5568; border: none; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; }
       .speak-again-btn:active { background: #e2e8f0; }
 
@@ -213,12 +282,13 @@
       .judge-btn.correct { background-color: #48bb78; box-shadow: 0 6px 0 #2f855a; }
       .judge-btn.correct:active { transform: translateY(6px); box-shadow: 0 0 0 #2f855a; }
       
-      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes slideUpModal { from { transform: translateY(100%); } to { transform: translateY(0); } }
     </style>
 
     <script>
       import allWords from '../data/words.json';
-      import { doc, setDoc, getDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
+      import { doc, setDoc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
       import { db } from "../lib/firebase";
 
       const setupScreen = document.getElementById('setup-screen') as HTMLElement;
@@ -230,7 +300,21 @@
       const rangeStartInput = document.getElementById('range-start') as HTMLInputElement;
       const rangeEndInput = document.getElementById('range-end') as HTMLInputElement;
       const randomCheck = document.getElementById('random-check') as HTMLInputElement;
-      const speakAgainBtn = document.getElementById('btn-speak-again') as HTMLButtonElement; // スピーカーボタン
+      const soundCheck = document.getElementById('sound-check') as HTMLInputElement;
+      const speakAgainBtn = document.getElementById('btn-speak-again') as HTMLButtonElement;
+
+      // リスト管理用 UI要素
+      const selectListEl = document.getElementById('select-mistake-list') as HTMLSelectElement;
+      const inputNewListName = document.getElementById('input-new-list-name') as HTMLInputElement;
+      const btnCreateList = document.getElementById('btn-create-list') as HTMLButtonElement;
+      
+      // モーダル（ポップアップ）用 UI要素
+      const btnOpenModal = document.getElementById('btn-open-modal') as HTMLButtonElement;
+      const listModal = document.getElementById('list-modal') as HTMLElement;
+      const btnCloseModal = document.getElementById('btn-close-modal') as HTMLButtonElement;
+      const listWordsContainer = document.getElementById('list-words-container') as HTMLElement;
+      const viewingListName = document.getElementById('viewing-list-name') as HTMLElement;
+      const viewingListCount = document.getElementById('viewing-list-count') as HTMLElement;
 
       type Word = { id: number; en: string; ja: string; };
       
@@ -240,6 +324,10 @@
       let isShowingFeedback = false;
       let sessionStudiedIds = new Set<number>();
       let currentMode = 'en-typing';
+      
+      let mistakeLists: Record<string, number[]> = { "デフォルト": [] };
+      let selectedListName = "デフォルト";
+      let isReviewSession = false;
 
       // UI Elements
       const questionTextEl = document.getElementById('question-text') as HTMLElement;
@@ -262,22 +350,34 @@
       const wrongBtn = document.getElementById('btn-wrong') as HTMLButtonElement;
       const correctBtn = document.getElementById('btn-correct') as HTMLButtonElement;
 
-      // 🌟 追加: 英語をネイティブ風に音声読み上げする共通関数
-      function speakEnglish(text: string) {
-        // 再生中の音声を強制停止
-        window.speechSynthesis.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US'; // アメリカ英語に設定 ('en-GB'にするとイギリス英語になります)
-        utterance.rate = 0.9;     // 少しだけ聞き取りやすくするために速度を0.9倍に調整
+      // 🌟 音声の最適化：高さを標準に戻し、より自然な声を探すように改修
+      function speakEnglish(text: string, force = false) {
+        if (!force && !soundCheck.checked) return;
         
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 1.0; // 速度を標準に
+        utterance.pitch = 1.0; // 高さを標準に
+        
+        // 可能な限り高品質な英語音声を選択（GoogleのUS英語など）
+        const voices = window.speechSynthesis.getVoices();
+        const enVoice = voices.find(v => v.lang === 'en-US' && v.name.includes('Google')) || voices.find(v => v.lang.startsWith('en'));
+        if (enVoice) {
+          utterance.voice = enVoice;
+        }
+
         window.speechSynthesis.speak(utterance);
       }
 
-      // 🌟 追加: スピーカーボタンを押した時、現在の英単語を再再生
+      // 音声リストの読み込みを確実にするため（ブラウザの仕様対策）
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+
       speakAgainBtn.addEventListener('click', () => {
         if (currentIndex < studyList.length) {
-          speakEnglish(studyList[currentIndex].en);
+          speakEnglish(studyList[currentIndex].en, true);
         }
       });
 
@@ -289,24 +389,156 @@
 
         let studiedCount = 0;
         let todayCount = 0;
-        let mistakeCount = 0;
 
         if (docSnap.exists()) {
           const data = docSnap.data();
           studiedCount = (data.studiedIds || []).length;
-          mistakeCount = (data.mistakeIds || []).length;
           if (data.dailyProgress && data.dailyProgress[todayStr]) {
             todayCount = data.dailyProgress[todayStr];
           }
+
+          if (data.mistakeLists) {
+            mistakeLists = data.mistakeLists;
+          } else if (data.mistakeIds) {
+            mistakeLists = { "デフォルト": data.mistakeIds };
+            await setDoc(userRef, { mistakeLists: mistakeLists }, { merge: true });
+          } else {
+            mistakeLists = { "デフォルト": [] };
+          }
+        } else {
+          mistakeLists = { "デフォルト": [] };
         }
 
+        if (!mistakeLists[selectedListName]) {
+          selectedListName = Object.keys(mistakeLists)[0] || "デフォルト";
+        }
+
+        updateListDropdown();
+        
+        if (listModal.style.display !== 'none') {
+          renderListViewer();
+        }
+
+        const currentListCount = mistakeLists[selectedListName] ? mistakeLists[selectedListName].length : 0;
         document.getElementById('stat-today')!.innerText = String(todayCount);
-        document.getElementById('stat-mistakes')!.innerText = String(mistakeCount);
+        document.getElementById('stat-mistakes')!.innerText = String(currentListCount);
         document.getElementById('stat-total-progress')!.innerText = String(studiedCount);
         document.getElementById('stat-remaining')!.innerText = String(1900 - studiedCount);
         const percent = Math.min((studiedCount / 1900) * 100, 100);
         document.getElementById('progress-bar-fill')!.style.width = `${percent}%`;
       }
+
+      function updateListDropdown() {
+        const currentSelected = selectedListName;
+        selectListEl.innerHTML = '';
+        Object.keys(mistakeLists).forEach(name => {
+          const option = document.createElement('option');
+          option.value = name;
+          option.innerText = `${name} (${mistakeLists[name].length}語)`;
+          if (name === currentSelected) option.selected = true;
+          selectListEl.appendChild(option);
+        });
+      }
+
+      btnOpenModal.addEventListener('click', () => {
+        renderListViewer();
+        listModal.style.display = 'flex';
+      });
+      btnCloseModal.addEventListener('click', () => {
+        listModal.style.display = 'none';
+        loadStats();
+      });
+      listModal.addEventListener('click', (e) => {
+        if (e.target === listModal) {
+          listModal.style.display = 'none';
+          loadStats();
+        }
+      });
+
+      // 🌟 改修: カード型の見やすいリストを生成する処理
+      function renderListViewer() {
+        viewingListName.innerText = selectedListName;
+        const ids = mistakeLists[selectedListName] || [];
+        viewingListCount.innerText = String(ids.length);
+        listWordsContainer.innerHTML = '';
+
+        if (ids.length === 0) {
+          listWordsContainer.innerHTML = '<div class="empty-list-msg">このリストにはまだ単語がありません。<br>学習を進めて苦手を見つけましょう！</div>';
+          return;
+        }
+
+        ids.forEach(id => {
+          const word = allWords.find(w => w.id === id);
+          if (!word) return;
+
+          // カードの作成
+          const card = document.createElement('div');
+          card.className = 'word-list-card';
+
+          // 単語情報の作成
+          const info = document.createElement('div');
+          info.className = 'word-info';
+          info.innerHTML = `<div class="word-en">${word.en}</div><div class="word-ja">${word.ja}</div>`;
+
+          // 削除ボタンの作成
+          const delBtn = document.createElement('button');
+          delBtn.className = 'delete-btn';
+          delBtn.innerHTML = '🗑 削除';
+          delBtn.onclick = () => removeWordFromList(id);
+
+          // カードに組み立てて追加
+          card.appendChild(info);
+          card.appendChild(delBtn);
+          listWordsContainer.appendChild(card);
+        });
+      }
+
+      async function removeWordFromList(wordId: number) {
+        if (!mistakeLists[selectedListName]) return;
+        mistakeLists[selectedListName] = mistakeLists[selectedListName].filter(id => id !== wordId);
+        
+        renderListViewer();
+        viewingListCount.innerText = String(mistakeLists[selectedListName].length);
+
+        try {
+          const userRef = doc(db, "users", "my_user");
+          await updateDoc(userRef, {
+            [`mistakeLists.${selectedListName}`]: mistakeLists[selectedListName]
+          });
+        } catch (e) {
+          alert('単語の削除に失敗しました。通信環境を確認してください。');
+        }
+      }
+
+      btnCreateList.addEventListener('click', async () => {
+        const name = inputNewListName.value.trim();
+        if (!name) {
+          alert('リスト名を入力してください。');
+          return;
+        }
+        if (mistakeLists[name]) {
+          alert('すでに同じ名前のリストが存在します。');
+          return;
+        }
+
+        mistakeLists[name] = [];
+        inputNewListName.value = '';
+
+        try {
+          const userRef = doc(db, "users", "my_user");
+          await setDoc(userRef, { mistakeLists: mistakeLists }, { merge: true });
+          selectedListName = name;
+          await loadStats();
+          alert(`リスト「${name}」を作成しました！`);
+        } catch (e) {
+          alert('リストの作成に失敗しました。');
+        }
+      });
+
+      selectListEl.addEventListener('change', (e) => {
+        selectedListName = (e.target as HTMLSelectElement).value;
+        document.getElementById('stat-mistakes')!.innerText = String(mistakeLists[selectedListName].length);
+      });
 
       loadStats();
 
@@ -319,11 +551,11 @@
         try {
           const snap = await getDoc(userRef);
           if (!snap.exists()) {
-            await setDoc(userRef, { mistakeIds: [], studiedIds: [], dailyProgress: {} });
+            await setDoc(userRef, { mistakeLists: { "デフォルト": [] }, studiedIds: [], dailyProgress: {} });
           }
           await updateDoc(userRef, {
             studiedIds: arrayUnion(...Array.from(sessionStudiedIds)),
-            [`dailyProgress.${todayStr}`]: increment(sessionStudiedIds.size)
+            [`dailyProgress.${todayStr}`]: arrayUnion(...Array.from(sessionStudiedIds)).length
           });
           sessionStudiedIds.clear();
         } catch (error) {
@@ -332,10 +564,13 @@
       }
 
       resetBtn.addEventListener('click', async () => {
-        if (confirm('本当に苦手リストを空にしますか？\n（進捗や学習数はリセットされません）')) {
+        if (confirm(`本当にリスト「${selectedListName}」を空にしますか？\n（他のリストや学習数はリセットされません）`)) {
           try {
             const userRef = doc(db, "users", "my_user");
-            await setDoc(userRef, { mistakeIds: [] }, { merge: true });
+            mistakeLists[selectedListName] = [];
+            await updateDoc(userRef, {
+              [`mistakeLists.${selectedListName}`]: []
+            });
             alert('リセットしました！');
             loadStats();
           } catch(e) {
@@ -361,13 +596,14 @@
         return 'en-typing';
       }
 
-      function startSession(words: Word[]) {
+      function startSession(words: Word[], reviewMode: boolean) {
         currentMode = getSelectedMode();
         studyList = words;
         currentIndex = 0;
         mistakes = [];
         isShowingFeedback = false;
         sessionStudiedIds.clear();
+        isReviewSession = reviewMode; 
 
         setupScreen.style.display = 'none';
         studyScreen.style.display = 'flex';
@@ -385,34 +621,23 @@
         if (randomCheck.checked) {
           filteredWords = shuffleArray(filteredWords);
         }
-        startSession(filteredWords);
+        startSession(filteredWords, false);
       });
 
       reviewSetupBtn.addEventListener('click', async () => {
-        try {
-          const userRef = doc(db, "users", "my_user");
-          const docSnap = await getDoc(userRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            const mistakeIds = data.mistakeIds || [];
-            if (mistakeIds.length === 0) {
-              alert("復習する単語がありません！完璧です！");
-              return;
-            }
-            let reviewWords = allWords.filter(word => mistakeIds.includes(word.id));
-            reviewWords = shuffleArray(reviewWords);
-            startSession(reviewWords);
-          } else {
-            alert("まだ学習データがありません。");
-          }
-        } catch (error) {
-          alert("復習データの取得に失敗しました。");
+        const ids = mistakeLists[selectedListName] || [];
+        if (ids.length === 0) {
+          alert(`リスト「${selectedListName}」には復習する単語がありません！`);
+          return;
         }
+        let reviewWords = allWords.filter(word => ids.includes(word.id));
+        reviewWords = shuffleArray(reviewWords);
+        startSession(reviewWords, true);
       });
 
       quitBtn.addEventListener('click', async () => {
         if (confirm('学習を中断して設定画面に戻りますか？')) {
-          window.speechSynthesis.cancel(); // 音声をストップ
+          window.speechSynthesis.cancel();
           await syncSessionProgress();
           await loadStats();
           studyScreen.style.display = 'none';
@@ -424,7 +649,7 @@
         if (currentIndex >= studyList.length) {
           await syncSessionProgress();
           await loadStats();
-          alert(`お疲れ様でした！\n新しく間違えた数: ${mistakes.length}コ`);
+          alert(`お疲れ様でした！\n今回間違えた（リストに残った）数: ${mistakes.length}コ`);
           studyScreen.style.display = 'none';
           setupScreen.style.display = 'flex';
           return;
@@ -444,9 +669,6 @@
           feedbackMsgEl.classList.remove('show');
           isShowingFeedback = false;
 
-          // 🌟 変更: タイピングモードでは、次の単語（日本語）が出たら即座に英語を発音（リスニング対策）
-          speakEnglish(currentWord.en);
-
         } else {
           questionTextEl.innerText = currentWord.en;
           typingUi.style.display = 'none';
@@ -456,7 +678,6 @@
           revealBtn.style.display = 'block';
           answerArea.style.display = 'none';
 
-          // 🌟 変更: 日本語訳テストでも、英語の問題文字が表示された瞬間にネイティブ発音
           speakEnglish(currentWord.en);
         }
       }
@@ -487,6 +708,13 @@
 
         if (answer === currentWord.en.toLowerCase()) {
           sessionStudiedIds.add(currentWord.id);
+          
+          if (isReviewSession) {
+            mistakeLists[selectedListName] = mistakeLists[selectedListName].filter(id => id !== currentWord.id);
+            const userRef = doc(db, "users", "my_user");
+            await updateDoc(userRef, { [`mistakeLists.${selectedListName}`]: mistakeLists[selectedListName] });
+          }
+
           currentIndex++;
           renderCurrentWord();
         } else {
@@ -496,18 +724,20 @@
           feedbackMsgEl.classList.add('show');
           isShowingFeedback = true;
 
-          // 🌟 変更: 間違えた時、正しい答えの発音をもう一度流してあげる
           speakEnglish(currentWord.en);
           
-          if (!mistakes.includes(currentWord.id)) {
-            mistakes.push(currentWord.id);
+          if (!mistakeLists[selectedListName].includes(currentWord.id)) {
+            mistakeLists[selectedListName].push(currentWord.id);
             try {
               const userRef = doc(db, "users", "my_user");
-              await setDoc(userRef, { mistakeIds: arrayUnion(currentWord.id) }, { merge: true });
+              await updateDoc(userRef, {
+                [`mistakeLists.${selectedListName}`]: mistakeLists[selectedListName]
+              });
             } catch (error) {
               console.error("保存エラー:", error);
             }
           }
+          if (!mistakes.includes(currentWord.id)) mistakes.push(currentWord.id);
         }
       }
 
@@ -551,7 +781,6 @@
         }, 100);
       }
 
-      // --- フラッシュカードモードの処理 ---
       revealBtn.addEventListener('click', () => {
         const currentWord = studyList[currentIndex];
         answerTextEl.innerText = currentWord.ja;
@@ -559,9 +788,20 @@
         answerArea.style.display = 'flex';
       });
 
-      correctBtn.addEventListener('click', () => {
+      correctBtn.addEventListener('click', async () => {
         const currentWord = studyList[currentIndex];
         sessionStudiedIds.add(currentWord.id);
+
+        if (isReviewSession) {
+          mistakeLists[selectedListName] = mistakeLists[selectedListName].filter(id => id !== currentWord.id);
+          try {
+            const userRef = doc(db, "users", "my_user");
+            await updateDoc(userRef, { [`mistakeLists.${selectedListName}`]: mistakeLists[selectedListName] });
+          } catch (e) {
+            console.error("削除エラー:", e);
+          }
+        }
+
         currentIndex++;
         renderCurrentWord();
       });
@@ -570,16 +810,19 @@
         const currentWord = studyList[currentIndex];
         sessionStudiedIds.add(currentWord.id);
         
-        if (!mistakes.includes(currentWord.id)) {
-          mistakes.push(currentWord.id);
+        if (!mistakeLists[selectedListName].includes(currentWord.id)) {
+          mistakeLists[selectedListName].push(currentWord.id);
           try {
             const userRef = doc(db, "users", "my_user");
-            await setDoc(userRef, { mistakeIds: arrayUnion(currentWord.id) }, { merge: true });
+            await updateDoc(userRef, {
+              [`mistakeLists.${selectedListName}`]: mistakeLists[selectedListName]
+            });
           } catch (error) {
             console.error("保存エラー:", error);
           }
         }
         
+        if (!mistakes.includes(currentWord.id)) mistakes.push(currentWord.id);
         currentIndex++;
         renderCurrentWord();
       });
