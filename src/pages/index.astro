@@ -288,7 +288,7 @@
 
     <script>
       import allWords from '../data/words.json';
-      import { doc, setDoc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
+      import { doc, setDoc, getDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
       import { db } from "../lib/firebase";
 
       const setupScreen = document.getElementById('setup-screen') as HTMLElement;
@@ -503,8 +503,9 @@
         try {
           const userRef = doc(db, "users", "my_user");
           await updateDoc(userRef, {
-            [`mistakeLists.${selectedListName}`]: mistakeLists[selectedListName]
-          });
+  studiedIds: arrayUnion(...Array.from(sessionStudiedIds)),
+  [`dailyProgress.${todayStr}`]: increment(sessionStudiedIds.size) // 🌟 ここを修正！
+});
         } catch (e) {
           alert('単語の削除に失敗しました。通信環境を確認してください。');
         }
@@ -555,7 +556,7 @@
           }
           await updateDoc(userRef, {
             studiedIds: arrayUnion(...Array.from(sessionStudiedIds)),
-            [`dailyProgress.${todayStr}`]: arrayUnion(...Array.from(sessionStudiedIds)).length
+            [`dailyProgress.${todayStr}`]: increment(sessionStudiedIds.size) // 🌟 ここを修正！
           });
           sessionStudiedIds.clear();
         } catch (error) {
